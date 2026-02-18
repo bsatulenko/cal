@@ -172,6 +172,30 @@ body {
   font-weight: 600;
 }
 
+.today-only-btn {
+  align-self: flex-end;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: var(--ink);
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border 0.2s ease, color 0.2s ease;
+}
+
+.today-only-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.today-only-btn.is-active {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+}
+
 .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.2em;
@@ -390,6 +414,10 @@ h1 {
 
   .date-picker {
     justify-content: flex-start;
+  }
+
+  .today-only-btn {
+    align-self: flex-start;
   }
 
   .legend {

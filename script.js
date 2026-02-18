@@ -23,6 +23,7 @@ const connectButton = document.getElementById("sync-connect");
 const syncStatus = document.getElementById("sync-status");
 const dateInput = document.getElementById("base-date");
 const dateDisplay = document.getElementById("date-display");
+const todayOnlyButton = document.getElementById("today-only");
 
 const cellIndex = new Map();
 const eventCache = new Map();
@@ -60,6 +61,7 @@ const headerParts = new Intl.DateTimeFormat("en-GB", {
 let currentTodayIso = null;
 let baseDateIso = null;
 let lastKnownTodayIso = null;
+let showTodayOnly = false;
 
 function partsToObject(parts) {
   return parts.reduce((acc, part) => {
@@ -136,6 +138,13 @@ function formatDisplayDate(dateIso) {
   return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
 }
 
+function getVisibleOffsets() {
+  if (showTodayOnly) {
+    return { start: 0, end: 0 };
+  }
+  return { start: -PAST_DAYS, end: FUTURE_DAYS };
+}
+
 function setSyncStatus(text, variant = "") {
   if (!syncStatus) return;
   syncStatus.textContent = text;
@@ -186,8 +195,9 @@ function refreshCloudSubscription() {
   if (unsubscribe) unsubscribe();
 
   const baseMidnightUtc = londonUtcMsForLocal(baseDateIso, 0, 0);
-  const startIso = isoDateFromUtc(baseMidnightUtc - PAST_DAYS * DAY_MS);
-  const endIso = isoDateFromUtc(baseMidnightUtc + FUTURE_DAYS * DAY_MS);
+  const offsets = getVisibleOffsets();
+  const startIso = isoDateFromUtc(baseMidnightUtc + offsets.start * DAY_MS);
+  const endIso = isoDateFromUtc(baseMidnightUtc + offsets.end * DAY_MS);
 
   const query = db
     .collection("schedules")
@@ -358,7 +368,8 @@ function buildGrid() {
   grid.innerHTML = "";
   cellIndex.clear();
 
-  const totalDays = PAST_DAYS + FUTURE_DAYS + 1;
+  const offsets = getVisibleOffsets();
+  const totalDays = offsets.end - offsets.start + 1;
   grid.style.gridTemplateColumns = `110px repeat(${totalDays}, minmax(160px, 1fr))`;
 
   const todayMidnightUtc = londonMidnightUtcMs();
@@ -367,8 +378,13 @@ function buildGrid() {
     if (dateInput) dateInput.value = baseDateIso;
     if (dateDisplay) dateDisplay.textContent = formatDisplayDate(baseDateIso);
   }
-  const baseMidnightUtc = londonUtcMsForLocal(baseDateIso, 0, 0);
   const todayIso = isoDateFromUtc(todayMidnightUtc);
+  if (showTodayOnly) {
+    baseDateIso = todayIso;
+    if (dateInput) dateInput.value = todayIso;
+    if (dateDisplay) dateDisplay.textContent = formatDisplayDate(todayIso);
+  }
+  const baseMidnightUtc = londonUtcMsForLocal(baseDateIso, 0, 0);
   currentTodayIso = todayIso;
 
   const corner = document.createElement("div");
@@ -376,7 +392,7 @@ function buildGrid() {
   corner.textContent = "UK time";
   grid.appendChild(corner);
 
-  for (let dayOffset = -PAST_DAYS; dayOffset <= FUTURE_DAYS; dayOffset += 1) {
+  for (let dayOffset = offsets.start; dayOffset <= offsets.end; dayOffset += 1) {
     const dateUtc = baseMidnightUtc + dayOffset * DAY_MS;
     const dateIso = isoDateFromUtc(dateUtc);
     const header = document.createElement("div");
@@ -395,7 +411,7 @@ function buildGrid() {
     timeCell.textContent = timeLabel(minutes);
     grid.appendChild(timeCell);
 
-    for (let dayOffset = -PAST_DAYS; dayOffset <= FUTURE_DAYS; dayOffset += 1) {
+    for (let dayOffset = offsets.start; dayOffset <= offsets.end; dayOffset += 1) {
       const dateUtc = baseMidnightUtc + dayOffset * DAY_MS;
       const dateIso = isoDateFromUtc(dateUtc);
       const time = timeKey(minutes);
@@ -439,7 +455,11 @@ function updatePastCells() {
   const nowUtc = londonNowUtcMs();
   const todayIso = isoDateFromUtc(londonMidnightUtcMs());
   if (todayIso !== currentTodayIso) {
-    if (dateInput.value === lastKnownTodayIso) {
+    if (showTodayOnly) {
+      baseDateIso = todayIso;
+      if (dateInput) dateInput.value = todayIso;
+      if (dateDisplay) dateDisplay.textContent = formatDisplayDate(todayIso);
+    } else if (dateInput.value === lastKnownTodayIso) {
       dateInput.value = todayIso;
       baseDateIso = todayIso;
       if (dateDisplay) dateDisplay.textContent = formatDisplayDate(todayIso);
@@ -480,8 +500,34 @@ function setupDatePicker() {
 
   dateInput.addEventListener("change", () => {
     const selected = dateInput.value || todayIso;
+    if (showTodayOnly) {
+      showTodayOnly = false;
+      if (todayOnlyButton) todayOnlyButton.classList.remove("is-active");
+      dateInput.disabled = false;
+    }
     baseDateIso = selected;
     if (dateDisplay) dateDisplay.textContent = formatDisplayDate(selected);
+    buildGrid();
+    updatePastCells();
+  });
+}
+
+function setupTodayOnly() {
+  if (!todayOnlyButton) return;
+  todayOnlyButton.addEventListener("click", () => {
+    showTodayOnly = !showTodayOnly;
+    todayOnlyButton.classList.toggle("is-active", showTodayOnly);
+    if (showTodayOnly) {
+      const todayIso = isoDateFromUtc(londonMidnightUtcMs());
+      baseDateIso = todayIso;
+      if (dateInput) {
+        dateInput.value = todayIso;
+        dateInput.disabled = true;
+      }
+      if (dateDisplay) dateDisplay.textContent = formatDisplayDate(todayIso);
+    } else if (dateInput) {
+      dateInput.disabled = false;
+    }
     buildGrid();
     updatePastCells();
   });
@@ -553,6 +599,7 @@ function setupPersistence() {
 
 setupDatePicker();
 setupSync();
+setupTodayOnly();
 buildGrid();
 setupPersistence();
 updatePastCells();
