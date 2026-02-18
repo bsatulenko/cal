@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>10-Day UK Planner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Work+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="app-header">
+        <div>
+          <p class="eyebrow">10-day scheduler</p>
+          <h1>Plan the next 10 days in UK time</h1>
+          <p class="subhead">
+            Click any cell to add an event. Past time slots fade automatically.
+          </p>
+        </div>
+        <div class="header-tools">
+          <div class="sync">
+            <label class="sync-label" for="sync-code">Sync code</label>
+            <input
+              id="sync-code"
+              class="sync-input"
+              type="password"
+              placeholder="Shared code"
+            />
+            <button id="sync-connect" class="sync-btn" type="button">
+              Connect
+            </button>
+            <span id="sync-status" class="sync-status">Local only</span>
+          </div>
+          <div class="date-picker">
+            <label class="date-label" for="base-date">Jump to date</label>
+            <input id="base-date" class="date-input" type="date" />
+            <span id="date-display" class="date-display">--/--/----</span>
+          </div>
+          <div class="legend">
+            <div class="legend-item"><span class="dot"></span>Upcoming</div>
+            <div class="legend-item"><span class="dot past"></span>Past</div>
+          </div>
+        </div>
+      </header>
+
+      <div class="grid-wrapper" aria-label="Planner grid">
+        <div id="planner-grid" class="grid" role="grid"></div>
+      </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
